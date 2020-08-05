@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from collections import Counter
 from sklearn.metrics import f1_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -8,34 +9,35 @@ from sklearn.model_selection import train_test_split
 
 
 def marginal_entropy(x):
-    x_counter = {xi: 0 for xi in x}
-    for xi in x:
-        x_counter[xi] += 1
-    probs = np.array(list(map(lambda xi: x_counter[xi] / len(x), x)))
+    """ Calculates entropy of x.
+        Link to read: https://en.wikipedia.org/wiki/Entropy """
+    x_counter = Counter(x)
+    probs = np.array([x_counter[xi] / len(x) for xi in x])
     nonzero_probs = probs[np.where(probs > 0)]
     entropy = -sum(nonzero_probs * np.log(nonzero_probs))
     return entropy
 
 
 def conditional_entropy(x, y):
-    y_counter = {yi: 0 for yi in y}
-    x_by_y_counter = {yi: {xi: 0 for xi in x} for yi in y}
-    for i in range(len(x)):
-        xi = x[i]
-        yi = y[i]
-        y_counter[yi] += 1
-        x_by_y_counter[yi][xi] += 1
+    """ Calculates entropy of x given y.
+        Link to read: https://en.wikipedia.org/wiki/Conditional_entropy """
+    y_counter = Counter(y)
+    x_given_y = {yi: {xi: 0 for xi in x} for yi in y}
     entropy = 0.
+    for i in range(len(y)):
+        x_given_y[y[i]][x[i]] += 1
     for yi in y_counter.keys():
-        x_yi = x_by_y_counter[yi].values()
-        x_by_yi = np.array(list(map(lambda xi: xi / y_counter[yi], x_yi)))
-        nonzero_probs = x_by_yi[np.where(x_by_yi > 0)]
+        x_given_yi = x_given_y[yi].values()
+        probs = np.array([x / y_counter[yi] for x in x_given_yi])
+        nonzero_probs = probs[np.where(probs > 0)]
         yi_entropy = -sum(nonzero_probs * np.log(nonzero_probs))
-        entropy += (y_counter[yi] / len(y)) * yi_entropy
+        entropy += y_counter[yi] / len(y) * yi_entropy
     return entropy
 
 
 def mutual_information(x, y):
+    """ Calculates mutual information of x and y.
+        Link to read: https://en.wikipedia.org/wiki/Mutual_information """
     return marginal_entropy(x) - conditional_entropy(x, y)
 
 
